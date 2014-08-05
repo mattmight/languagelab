@@ -5,6 +5,132 @@ import net.might.matt.languages.sexp._ ;
 
 object TestCPS {
   import net.might.matt.languages.cps._ ;
+
+
+  type Addr = Int
+
+  type Value = Closure
+
+  type Env = Map[String,Addr]
+
+  type Store = Map[Addr, Value]
+
+  case class Closure(lam : AExp, env : Env)
+
+  def eval(aexp : AExp, env : Env, store : Store) : Value = aexp match {
+    case RefExp(v) => store(env(v))
+    case LambdaExp(vars,body) => Closure(aexp, env)
+  }
+
+  var maxAddr : Int = 0 
+
+  def alloc (a : Any) : Addr = { maxAddr += 1 ; maxAddr }
+
+  case class State(cexp : CExp, env : Env, store : Store) {
+    def step() : Option[State] = {
+      cexp match {
+        case AppExp(f, args) => {
+
+          val clo = eval(f,env,store)
+
+          clo match {
+            case Closure(LambdaExp(vars,body), env2) => {
+
+              val argVals = args map (eval(_,env,store))
+
+              val addrs = vars.map(alloc)
+
+              var env3 : Env = env2
+
+              for ((v,a) <- vars zip addrs) {
+                env3 = env3.updated(v,a)
+              }
+
+              var store2 : Store = store
+
+              for ((a,value) <- addrs zip argVals) {
+                store2 = store2.updated(a,value)
+              }
+
+              Some(State(body, env3, store2))
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def inject(prog : CExp) : State = State(prog, Map(), Map())
+  
+
+
+  class AAddr
+
+  case object UniAAddr extends AAddr
+
+  case class VarAAddr(val v : String) extends AAddr
+
+
+  type AValue = Set[AClosure]
+
+  type AEnv = Map[String,AAddr]
+
+  type AStore = Map[AAddr, AValue]
+
+  case class AClosure(lam : AExp, env : AEnv)
+
+  def aeval(aexp : AExp, aenv : AEnv, astore : AStore) : AValue = aexp match {
+    case RefExp(v) => astore(aenv(v))
+    case LambdaExp(vars,body) => Set(AClosure(aexp, aenv))
+  }
+
+
+  // A "univariant" allocator:
+  // def aalloc (a : Any) : AAddr = { UniAAddr }
+
+  // A monovariant allocator (0CFA): 
+  def aalloc (v : String) = VarAAddr(v)
+
+  case class AState(cexp : CExp, aenv : AEnv, astore : AStore) {
+    def step() : List[AState] = {
+      cexp match {
+        case AppExp(f, args) => {
+
+          val aclos = aeval(f,aenv,astore)
+
+          for (aclo <- aclos.toList) yield {
+            aclo match {
+              case AClosure(LambdaExp(vars,body), aenv2) => {
+  
+                val argVals = args map (aeval(_,aenv,astore))
+  
+                val aaddrs = vars.map(aalloc)
+
+                var aenv3 : AEnv = aenv2
+
+                for ((v,a) <- vars zip aaddrs) {
+                  aenv3 = aenv3.updated(v,a)
+                }
+
+                var astore2 : AStore = astore
+
+                for ((a,value) <- aaddrs zip argVals) {
+                  astore2 = astore2.updated(a,value)
+                }
+
+                AState(body, aenv3, astore2)
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  def ainject(prog : CExp) : AState = AState(prog, Map(), Map())
+
+
+
 }
 
 object TestReg {
@@ -172,6 +298,25 @@ object TestReg {
   }
 
 
+  def arun (prog : RegProg) : Set[AState] = {
+    var todo = List[AState](ainject(prog))
+    var seen = Set[AState]()
+
+    while (!todo.isEmpty) {
+      val next = todo.head
+
+      // println(next)
+
+      if (!(seen contains next)) {
+         val succs = next.step()
+         todo = succs ++ todo.tail
+         seen = seen + next
+      } 
+    }
+
+    seen
+  }
+
 
 
 
@@ -196,11 +341,9 @@ object TestReg {
 
     println(prog) 
 
-    val state = inject(prog) 
+    val astates = arun(prog)
 
-    println(state)
-    println(state.step())
-    println(state.step().step())
+    println(astates)
   }
 }
 

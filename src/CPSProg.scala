@@ -2,6 +2,15 @@ package net.might.matt.languages.cps ;
 
 import net.might.matt.languages.sexp._ ;
 
+/*
+  
+  <aexp> ::= <var>
+          |  (lambda (<var> ...) <cexp>)
+
+  <cexp> ::= (<aexp> ...)
+
+ */
+
 abstract class AExp {
 }
 
