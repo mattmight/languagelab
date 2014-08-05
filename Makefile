@@ -1,7 +1,9 @@
 P=net/might/matt/languages
 
+
 .PHONY: all
-all: test
+all:
+	scalac -d bin src/*.scala
 
 bin:
 	mkdir bin
