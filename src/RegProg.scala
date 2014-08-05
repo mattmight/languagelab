@@ -99,7 +99,27 @@ case class EqExp(val a : Exp, val b : Exp) extends Exp
 
 object RegProg {
   def from (reg : SExp) : RegProg = new RegProg(reg.toList map Stmt.from) 
+
+  val table = scala.collection.mutable.Map[String,List[Stmt]]()
+
+  def preprocess(stmts : List[Stmt]) {
+    if (stmts.isEmpty)
+      return ;
+
+    stmts.head match {
+      case LabelStmt(target) => {
+        table(target) = stmts
+      }
+
+      case _ => {}
+    }
+
+    preprocess(stmts.tail)
+  }
+
+  def lookup(target : String) = table(target)
 }
 
 case class RegProg(val stmts : List[Stmt]) {
+  RegProg.preprocess(stmts) 
 }

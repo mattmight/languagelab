@@ -68,34 +68,57 @@ object TestReg {
   }
 
  
-  def aeval(exp : Exp) : AInt = {
+  def aeval(exp : Exp, aenv : Map[String,AInt]) : AInt = {
      exp match {
        case IntExp(n) => α(n)
 
-       case PlusExp(a,b) => aeval(a) + aeval(b) 
+       case RefExp(v) => aenv(v)
+
+       case PlusExp(a,b) => aeval(a,aenv) + aeval(b,aenv) 
      }
   }
 
 
-  abstract class AbstractState {
-    def step () : AbstractState
+  abstract class BaseState {
+    def step () : BaseState
+    def isFinal : Boolean
   }
 
-  case class State(stmts : List[Stmt], env : Map[String,Int]) extends AbstractState {
-    def step () : AbstractState = {
+  case class State(stmts : List[Stmt], env : Map[String,Int]) extends BaseState {
+    val isFinal = false
+
+    def step () : BaseState = {
       if (stmts.isEmpty) {
         return FinalState(env)
       }
 
       stmts.head match {
+        case LabelStmt(target) => {
+          State(stmts.tail, env)
+        }
+
         case AssignStmt(v, exp) => {
           State(stmts.tail, env.updated(v, eval(exp,env)))
+        }
+
+        case GotoStmt(target) => {
+          State(RegProg.lookup(target),env)
+        }
+
+        case IfStmt(exp, target) => {
+          val cond = eval(exp,env) 
+          if (cond == 0)
+            State(stmts.tail, env)
+          else
+            State(RegProg.lookup(target), env)
         }
       }
     }
   }
 
-  case class FinalState(env : Map[String,Int]) extends AbstractState {
+  case class FinalState(env : Map[String,Int]) extends BaseState {
+    val isFinal = true
+
     def step () : FinalState = {
       return this ;
     }
@@ -106,7 +129,51 @@ object TestReg {
     State(prog.stmts, Map())
   }
 
-  
+
+  def run (prog : RegProg) : BaseState = {
+    var state : BaseState = inject(prog) 
+
+    while (!state.isFinal)
+      state = state.step()
+
+    return state
+  }
+
+
+  case class AState(stmts : List[Stmt], aenv : Map[String,AInt]) {
+    def step () : List[AState] = {
+      if (stmts.isEmpty) {
+        return List() 
+      }
+
+      stmts.head match {
+        case LabelStmt(target) => {
+          List(AState(stmts.tail, aenv))
+        }
+
+        case AssignStmt(v, exp) => {
+          List(AState(stmts.tail, aenv.updated(v, aeval(exp,aenv))))
+        }
+
+        case GotoStmt(target) => {
+          List(AState(RegProg.lookup(target),aenv))
+        }
+
+        case IfStmt(exp, target) => {
+          List(AState(stmts.tail, aenv), AState(RegProg.lookup(target), aenv))
+        }
+      }
+    }
+  }
+
+
+  def ainject (prog : RegProg) : AState = {
+    AState(prog.stmts, Map())
+  }
+
+
+
+
 
   def test() {
     val in = "(+ 42 42)" ;
@@ -119,7 +186,7 @@ object TestReg {
     
     println(eval(exp,Map()))
 
-    println(aeval(exp))
+    println(aeval(exp,Map()))
 
     val src_prog = "((:= x 42) (:= y x))"
 
