@@ -18,8 +18,8 @@ bin/$(P)/cps/CPSProg.class: src/CPSProg.scala bin/$(P)/sexp/SExp.class
 bin/$(P)/exp/Exp.class: src/Exp.scala bin/$(P)/sexp/SExp.class
 	scalac -cp bin -d bin src/Exp.scala
 
-bin/Test.class: bin/$(P)/sexp/SExp.class bin/$(P)/reg/RegProg.class bin/$(P)/cps/CPSProg.class
-	scalac -cp bin -d bin src/Test.scala
+bin/Test.class: src/Test.scala bin/$(P)/sexp/SExp.class bin/$(P)/reg/RegProg.class bin/$(P)/cps/CPSProg.class
+	scalac -feature -cp bin -d bin src/Test.scala
 
 .PHONY: test
 test: bin/Test.class 
