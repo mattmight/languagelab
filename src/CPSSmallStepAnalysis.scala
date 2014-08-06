@@ -80,7 +80,23 @@ object CPSSmallStepAnalysis {
 
   def ainject(prog : CPSProg) : AState = AState(prog.cexp, Map(), Map())
 
-   
+  def arun (prog : CPSProg) : Set[AState] = {
+    var todo = List[AState](ainject(prog))
+    var seen = Set[AState]()
+
+    while (!todo.isEmpty) {
+      val next = todo.head
+
+      if (!(seen contains next)) {
+         val succs = next.step()
+         todo = succs ++ todo.tail
+         seen = seen + next
+      } 
+    }
+
+    seen
+  }
+ 
 }
 
 
