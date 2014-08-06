@@ -23,6 +23,12 @@ object CPSSmallStepAnalysis {
     case LambdaExp(vars,body) => Set(AClosure(aexp, aenv))
   }
 
+  def joinWith(astore : AStore, aaddr : AAddr, ad : AD) : AStore = {
+    (astore get aaddr) match {
+      case Some(ad2) => astore.updated(aaddr, ad ++ ad2)
+      case None => astore.updated(aaddr, ad)
+    }
+  }
 
   // A "univariant" allocator:
   // def aalloc (a : Any) : AAddr = { UniAAddr }
@@ -54,7 +60,7 @@ object CPSSmallStepAnalysis {
                 var astore2 : AStore = astore
 
                 for ((a,value) <- aaddrs zip argVals) {
-                  astore2 = astore2.updated(a,value)
+                  astore2 = joinWith(astore2,a,value)
                 }
 
                 AState(body, aenv3, astore2)

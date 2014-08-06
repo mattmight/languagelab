@@ -25,7 +25,6 @@ object CPSSmallStepInterpreter {
 
   def alloc (a : Any) : Addr = { maxAddr += 1 ; maxAddr }
 
-
   case class State(cexp : CExp, env : Env, store : Store) {
 
     def step () : Option[State] = {
