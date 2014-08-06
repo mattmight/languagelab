@@ -78,7 +78,7 @@ object CPSSmallStepAnalysis {
     }
   }
 
-  def ainject(prog : CExp) : AState = AState(prog, Map(), Map())
+  def ainject(prog : CPSProg) : AState = AState(prog.cexp, Map(), Map())
 
    
 }
