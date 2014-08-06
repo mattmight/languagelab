@@ -39,6 +39,9 @@ object CPSSmallStepAnalysis {
   case class AState(cexp : CExp, aenv : AEnv, astore : AStore) {
     def step() : List[AState] = {
       cexp match {
+
+        case HaltExp(exit) => List()
+
         case AppExp(f, args) => {
 
           val aclos = aeval(f,aenv,astore)

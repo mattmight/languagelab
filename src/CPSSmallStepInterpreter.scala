@@ -29,6 +29,8 @@ object CPSSmallStepInterpreter {
 
     def step () : Option[State] = {
       cexp match {
+        case HaltExp(exit) => None
+
         case AppExp(f, args) => {
   
           val clo = eval(f,env,store)
