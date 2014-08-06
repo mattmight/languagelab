@@ -12,13 +12,16 @@ object CPSSmallStepInterpreter {
   abstract class Value 
 
   case class Closure(lam : AExp, env : Env) extends Value
+  case class IntValue(value : Int) extends Value
+  case class BooleanValue(value : Boolean) extends Value
 
   type D = Value // D means "Denotable value"
-
 
   def eval(aexp : AExp, env : Env, store : Store) : D = aexp match {
     case RefExp(v) => store(env(v))
     case LambdaExp(vars,body) => Closure(aexp, env)
+    case IntExp(n) => IntValue(n)
+    case BooleanExp(b) => BooleanValue(b)
   }
 
   var maxAddr : Int = 0 
@@ -62,8 +65,38 @@ object CPSSmallStepInterpreter {
     }
   }
 
-  def inject(prog : CExp) : State = State(prog, Map(), Map())
+  def inject(prog : CPSProg) : State = State(prog.cexp, Map(), Map())
 
-  def run (prog : CExp) {
+ 
+  def run (prog : CPSProg) : State = {
+    var last  : Option[State] = None
+    var state : Option[State] = Some(inject(prog))
+
+    while (!state.isEmpty) {
+      last = state
+      state = state.get.step()
+    }
+
+    return last.get
+  }
+
+  
+  def main(args : Array[String]) {
+    test()
+  }
+  
+
+  def test() {
+
+    import net.might.matt.languages.sexp._ ;
+
+    val test1 = "((lambda (x) (halt x)) 3)" 
+    val sx1 = SExp.from(test1) 
+    val prog1 = CPSProg.from(sx1)
+
+    val fin1 = run(prog1)  
+ 
+    println(fin1) 
+
   }
 }

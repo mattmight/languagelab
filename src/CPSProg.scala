@@ -30,9 +30,9 @@ object AExp {
        
 
       // Conditionals:
-      case STrue() => BoolExp(true)
+      case STrue() => BooleanExp(true)
 
-      case SFalse() => BoolExp(false)
+      case SFalse() => BooleanExp(false)
 
 
       // Numerics:
@@ -81,7 +81,7 @@ case class RefExp(val id : String) extends AExp {
   override def toString = id
 }
 
-case class BoolExp(val value : Boolean) extends AExp
+case class BooleanExp(val value : Boolean) extends AExp
 
 case class IntExp(val value : Int) extends AExp
 
@@ -110,8 +110,9 @@ case class LetRecExp(val fun : String,
 
 
 
-class CPSProg {
+class CPSProg(val cexp : CExp) {
 }
 
 object CPSProg {
+  def from(sexp : SExp) = new CPSProg(CExp.from(sexp))
 }

@@ -3,10 +3,8 @@ import net.might.matt.languages.cps._ ;
 object CPSSmallStepAnalysis {
 
   class AAddr
-
   case object UniAAddr extends AAddr
-
-  case class VarAAddr(val v : String) extends AAddr
+  case class VarAAddr(val v : String) extends AAddr // for 0CFA
 
   abstract class AValue
 
@@ -17,10 +15,14 @@ object CPSSmallStepAnalysis {
   type AStore = Map[AAddr, AD]
 
   case class AClosure(lam : AExp, env : AEnv) extends AValue
+  case object AIntValue extends AValue
+  case class ABooleanValue(value : Boolean) extends AValue
 
   def aeval(aexp : AExp, aenv : AEnv, astore : AStore) : AD = aexp match {
     case RefExp(v) => astore(aenv(v))
     case LambdaExp(vars,body) => Set(AClosure(aexp, aenv))
+    case IntExp(n) => Set(AIntValue)
+    case BooleanExp(b) => Set(ABooleanValue(b))
   }
 
   def joinWith(astore : AStore, aaddr : AAddr, ad : AD) : AStore = {
@@ -37,6 +39,7 @@ object CPSSmallStepAnalysis {
   def aalloc (v : String) = VarAAddr(v)
 
   case class AState(cexp : CExp, aenv : AEnv, astore : AStore) {
+
     def step() : List[AState] = {
       cexp match {
 
@@ -77,7 +80,7 @@ object CPSSmallStepAnalysis {
 
   def ainject(prog : CExp) : AState = AState(prog, Map(), Map())
 
-  
+   
 }
 
 
