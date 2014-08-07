@@ -94,7 +94,7 @@ object CPSSmallStepAnalysis {
       } 
     }
 
-    seen
+    return seen
   }
  
 }

@@ -113,7 +113,7 @@ object RegSmallStepAnalysis {
       } 
     }
 
-    seen
+    return seen
   }
 
 
