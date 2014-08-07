@@ -9,11 +9,19 @@ object CPSSmallStepInterpreter {
 
   type Store = Map[Addr, D]
 
-  abstract class Value 
+  abstract class Value {
+    def toInt : Int
+  }
 
-  case class Closure(lam : AExp, env : Env) extends Value
-  case class IntValue(value : Int) extends Value
-  case class BooleanValue(value : Boolean) extends Value
+  case class Closure(lam : AExp, env : Env) extends Value {
+    def toInt = throw new Exception("not an integer")
+  }
+  case class IntValue(value : Int) extends Value {
+    val toInt = value
+  }
+  case class BooleanValue(value : Boolean) extends Value {
+    def toInt = throw new Exception("not an integer")
+  }
 
   type D = Value // D means "Denotable value"
 
@@ -33,6 +41,26 @@ object CPSSmallStepInterpreter {
     def step () : Option[State] = {
       cexp match {
         case HaltExp(exit) => None
+
+        case AppPrimExp(CPSPrim(SumOp),List(a,b,k)) => {
+          val cont = eval(k,env,store)
+
+          cont match {
+            case Closure(LambdaExp(List(v),body),env2) => {
+              val aval : Value = eval(a,env,store)
+              val bval : Value = eval(b,env,store)
+              val retval = IntValue(aval.toInt + bval.toInt)
+
+              val addr = alloc (v)
+
+              val env3 = env2.updated(v,addr)
+
+              val store2 = store.updated(addr,retval)
+
+              Some(State(body, env3, store2))
+            }
+          }
+        }
 
         case AppExp(f, args) => {
   
@@ -90,7 +118,7 @@ object CPSSmallStepInterpreter {
 
     import net.might.matt.languages.sexp._ ;
 
-    val test1 = "((lambda (x) (halt x)) 3)" 
+    val test1 = "((lambda (x) (+/cps x 4 (lambda (n) (halt n)))) 3)" 
     val sx1 = SExp.from(test1) 
     val prog1 = CPSProg.from(sx1)
 

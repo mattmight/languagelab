@@ -50,6 +50,17 @@ object CExp {
   def from(sexp : SExp) : CExp = {
     sexp match {
 
+      // Primops:
+      case SList(SSymbol("+/cps"),a,b,k) =>
+       AppPrimExp(CPSPrim(SumOp),List(AExp.from(a), AExp.from(b), AExp.from(k)))
+
+      case SList(SSymbol("*/cps"),a,b,k) =>
+       AppPrimExp(CPSPrim(MulOp),List(AExp.from(a), AExp.from(b), AExp.from(k)))
+
+      case SList(SSymbol("=/cps"),a,b,k) =>
+       AppPrimExp(CPSPrim(EqOp),List(AExp.from(a), AExp.from(b), AExp.from(k)))
+
+
       // Conditional:
       case SList(SSymbol("if"),cond,ifTrue,ifFalse) =>
        IfExp(AExp.from(cond), from(ifTrue), from(ifFalse))
@@ -58,7 +69,7 @@ object CExp {
       case SList(SSymbol("letrec"),
                 SList(SList(SSymbol(fun),lambda)),
                 body) =>
-       LetRecExp(fun,AExp.from(lambda),from(body))
+       LetRec1Exp(fun,AExp.from(lambda),from(body))
     
       // Halt:
       case SList(SSymbol("halt"),exit) =>
@@ -74,6 +85,13 @@ object CExp {
 }
 
 
+abstract class PrimOp
+
+case object SumOp extends PrimOp
+case object MulOp extends PrimOp
+case object EqOp extends PrimOp
+
+case class CPSPrim(val op : PrimOp) 
 
 
 /* Atomic expressions. */
@@ -92,6 +110,9 @@ case class LambdaExp(val params : List[String], val body : CExp) extends AExp {
 
 
 /* Complex expressions. */
+
+case class AppPrimExp(val op : CPSPrim, val exps : List[AExp]) extends CExp
+
 case class AppExp(val fun : AExp, args : List[AExp]) extends CExp {
   override def toString = 
     "(" +(fun :: args).mkString(" ")+ ")"
@@ -104,9 +125,9 @@ case class IfExp(val cond : AExp,
                  val ifFalse : CExp) extends CExp
 
 
-case class LetRecExp(val fun : String,
-                     val lambda : AExp,
-                     val body : CExp) extends CExp
+case class LetRec1Exp(val fun : String,
+                      val lambda : AExp,
+                      val body : CExp) extends CExp
 
 
 
