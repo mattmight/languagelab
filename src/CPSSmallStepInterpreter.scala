@@ -11,16 +11,24 @@ object CPSSmallStepInterpreter {
 
   abstract class Value {
     def toInt : Int
+    def toBoolean : Boolean
+    def isFalse : Boolean
   }
 
   case class Closure(lam : AExp, env : Env) extends Value {
     def toInt = throw new Exception("not an integer")
+    def toBoolean = throw new Exception("not a boolean")
+    def isFalse = false
   }
   case class IntValue(value : Int) extends Value {
     val toInt = value
+    def toBoolean = throw new Exception("not a boolean")
+    def isFalse = false
   }
   case class BooleanValue(value : Boolean) extends Value {
     def toInt = throw new Exception("not an integer")
+    def toBoolean = value
+    def isFalse = !value
   }
 
   type D = Value // D means "Denotable value"
@@ -36,20 +44,25 @@ object CPSSmallStepInterpreter {
 
   def alloc (a : Any) : Addr = { maxAddr += 1 ; maxAddr }
 
+  def evalOp (op : PrimOp, args : List[Value]) : Value = op match {
+    case SumOp => IntValue(args(0).toInt + args(1).toInt)
+    case EqOp => BooleanValue(args(0).toInt == args(1).toInt)
+  }
+
   case class State(cexp : CExp, env : Env, store : Store) {
 
     def step () : Option[State] = {
       cexp match {
         case HaltExp(exit) => None
 
-        case AppPrimExp(CPSPrim(SumOp),List(a,b,k)) => {
+        case AppPrimExp(CPSPrim(op),List(a,b,k)) => {
           val cont = eval(k,env,store)
 
           cont match {
             case Closure(LambdaExp(List(v),body),env2) => {
               val aval : Value = eval(a,env,store)
               val bval : Value = eval(b,env,store)
-              val retval = IntValue(aval.toInt + bval.toInt)
+              val retval = evalOp(op, List(aval, bval))
 
               val addr = alloc (v)
 
@@ -60,6 +73,14 @@ object CPSSmallStepInterpreter {
               Some(State(body, env3, store2))
             }
           }
+        }
+
+        case IfExp(cond,body1,body2) => {
+          val condValue = eval(cond,env,store)
+          if (condValue.isFalse)
+            Some(State(body2, env, store))
+          else
+            Some(State(body1, env, store))
         }
 
         case AppExp(f, args) => {
